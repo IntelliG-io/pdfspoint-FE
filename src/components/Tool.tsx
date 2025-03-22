@@ -11,6 +11,8 @@ interface ToolProps {
   bgClass?: string;
   route: string;
   className?: string;
+  comingSoon?: boolean;
+  style?: React.CSSProperties;
 }
 
 const Tool: React.FC<ToolProps> = ({
@@ -20,7 +22,42 @@ const Tool: React.FC<ToolProps> = ({
   bgClass = "bg-primary/10",
   route,
   className,
+  comingSoon = false,
+  style,
 }) => {
+  if (comingSoon) {
+    return (
+      <div 
+        className={cn(
+          "group relative overflow-hidden p-6 rounded-xl glass-card opacity-80 cursor-not-allowed",
+          className
+        )}
+        style={style}
+      >
+      <div className="absolute -right-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20 group-hover:opacity-30 smooth-transition" 
+        style={{ background: `radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)` }}
+      />
+      
+      <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center mb-4 text-primary", bgClass)}>
+        <Icon className="w-6 h-6" />
+      </div>
+      
+      <h3 className="text-lg font-medium mb-2 group-hover:text-primary smooth-transition">{title}</h3>
+      
+      <p className="text-sm text-muted-foreground mb-4">{description}</p>
+      
+        <div className="absolute -right-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20 group-hover:opacity-30 smooth-transition" 
+          style={{ background: `radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)` }}
+        />
+        <div className="flex items-center justify-center mt-4">
+          <div className="px-3 py-1 text-xs font-semibold text-primary bg-primary/10 rounded-full">
+            Coming Soon
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <Link
       to={route}
@@ -28,6 +65,7 @@ const Tool: React.FC<ToolProps> = ({
         "group relative overflow-hidden p-6 rounded-xl glass-card hover:scale-[1.02] hover:shadow-md smooth-transition",
         className
       )}
+      style={style}
     >
       <div className="absolute -right-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20 group-hover:opacity-30 smooth-transition" 
         style={{ background: `radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)` }}

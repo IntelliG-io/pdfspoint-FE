@@ -1,10 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import FileUpload from "@/components/FileUpload";
-import { ArrowLeft, ArrowRight, HelpCircle, Check, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight, HelpCircle, Check, Info, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import usePdfOperations from "@/hooks/use-pdf-operations";
+import { useToast } from "@/hooks/use-toast";
 
 interface ToolData {
   [key: string]: {
@@ -87,13 +89,57 @@ const Tool = () => {
   const { toolId } = useParams<{ toolId: string }>();
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [fileOrder, setFileOrder] = useState<number[]>([]);
   const [step, setStep] = useState(1);
+  const [mergedPdfUrl, setMergedPdfUrl] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [processingComplete, setProcessingComplete] = useState(false);
+  
+  const { toast } = useToast();
+  
+  // Clean up URL objects when component unmounts
+  useEffect(() => {
+    return () => {
+      if (mergedPdfUrl) {
+        URL.revokeObjectURL(mergedPdfUrl);
+      }
+    };
+  }, [mergedPdfUrl]);
+  const { mergePdfs, splitPdf, isLoading, error, getFriendlyErrorMessage } = usePdfOperations({
+    onSuccess: (data: Blob, filename: string) => {
+      // Create URL for the blob data
+      const url = window.URL.createObjectURL(new Blob([data]));
+      setMergedPdfUrl(url);
+      setProcessing(false);
+      setProcessingComplete(true);
+      setStep(3);
+      
+      toast({
+        title: "Success!",
+        description: `Your ${toolId === "merge-pdf" ? "merged" : "split"} PDF is ready for download.`,
+        duration: 5000,
+      });
+    },
+    onError: (error: Error) => {
+      setProcessing(false);
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while processing your PDF files.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+  });
   
   // Default to convert-pdf if toolId is not in our data
   const currentTool = toolData[toolId || ""] || toolData["convert-pdf"];
   
   const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles(selectedFiles);
+    
+    // Initialize file order with sequential indices
+    setFileOrder(selectedFiles.map((_, index) => index));
+    
     if (selectedFiles.length > 0 && step === 1) {
       setStep(2);
     }
@@ -102,6 +148,85 @@ const Tool = () => {
   const handleFormatSelect = (format: string) => {
     setSelectedFormat(format);
     setStep(3);
+  };
+  
+  // Handle moving files up/down in the order
+  const moveFile = (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) || 
+      (direction === 'down' && index === files.length - 1)
+    ) {
+      return; // Already at the extremes
+    }
+    
+    const newOrder = [...fileOrder];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Swap the indices
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    
+    setFileOrder(newOrder);
+  };
+  
+  const handleProcessFiles = async () => {
+    setProcessing(true);
+    
+    // Reset any previous errors
+    setMergedPdfUrl(null);
+    
+    try {
+      if (toolId === "merge-pdf") {
+        if (files.length < 2) {
+          toast({
+            title: "Error",
+            description: "You need at least 2 PDF files to merge.",
+            variant: "destructive",
+            duration: 5000,
+          });
+          setProcessing(false);
+          return;
+        }
+        
+        // Reorder files according to the user's arrangement
+        const orderedFiles = fileOrder.map(index => files[index]);
+        
+        // Set up options for the merge operation
+        const options = {
+          documentInfo: {
+            title: "Merged Document",
+            author: "PaperFlow",
+            subject: "Combined PDF Document",
+            keywords: "merged, pdf, document"
+          },
+          // No need to pass fileOrder since we're already sending the files in the desired order
+          addBookmarks: true
+        };
+        
+        await mergePdfs(orderedFiles, options);
+      } else if (toolId === "split-pdf") {
+        if (files.length !== 1) {
+          toast({
+            title: "Error",
+            description: "Please select exactly one PDF file to split.",
+            variant: "destructive",
+            duration: 5000,
+          });
+          setProcessing(false);
+          return;
+        }
+        
+        await splitPdf(files[0]);
+      }
+    } catch (err) {
+      // Show error toast
+      toast({
+        title: "Error",
+        description: error ? getFriendlyErrorMessage(error) : "An error occurred while processing your PDF files.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      console.error("Error processing PDFs:", err);
+    }
   };
   
   const outputFormats = [
@@ -157,8 +282,10 @@ const Tool = () => {
             <div className="max-w-xl mx-auto w-full animate-fade-in animate-once">
               <h3 className="text-lg font-medium mb-4">Arrange PDF Order</h3>
               <div className="border rounded-lg p-4 bg-secondary/30">
-                {files.map((file, index) => (
-                  <div key={index} className="flex items-center p-3 bg-background rounded-lg mb-2 group">
+                {fileOrder.map((fileIndex, orderIndex) => {
+                  const file = files[fileIndex];
+                  return (
+                  <div key={orderIndex} className="flex items-center p-3 bg-background rounded-lg mb-2 group">
                     <div className="p-2 bg-secondary rounded">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                         <path d="M13 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
@@ -169,13 +296,31 @@ const Tool = () => {
                       <div className="text-sm font-medium truncate">{file.name}</div>
                     </div>
                     <div className="flex items-center">
-                      <button className="p-1 text-muted-foreground hover:text-foreground smooth-transition">
+                      <button 
+                        className={cn(
+                          "p-1 smooth-transition",
+                          orderIndex > 0 
+                            ? "text-muted-foreground hover:text-foreground" 
+                            : "text-muted-foreground/30 cursor-not-allowed"
+                        )}
+                        onClick={() => moveFile(orderIndex, 'up')}
+                        disabled={orderIndex === 0}
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="m5 9 4-4 4 4" />
                           <path d="M9 5v14" />
                         </svg>
                       </button>
-                      <button className="p-1 text-muted-foreground hover:text-foreground smooth-transition">
+                      <button 
+                        className={cn(
+                          "p-1 smooth-transition",
+                          orderIndex < files.length - 1 
+                            ? "text-muted-foreground hover:text-foreground" 
+                            : "text-muted-foreground/30 cursor-not-allowed"
+                        )}
+                        onClick={() => moveFile(orderIndex, 'down')}
+                        disabled={orderIndex === files.length - 1}
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="m5 15 4 4 4-4" />
                           <path d="M9 5v14" />
@@ -183,15 +328,26 @@ const Tool = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                )
+                })}
               </div>
               <div className="mt-6">
                 <button 
                   className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium shadow-lg shadow-primary/20 flex items-center justify-center smooth-transition"
-                  onClick={() => setStep(3)}
+                  onClick={handleProcessFiles}
+                  disabled={processing || files.length < 2}
                 >
-                  Merge Files
-                  <ArrowRight className="ml-2 w-4 h-4" />
+                  {processing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Merge Files
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -235,10 +391,20 @@ const Tool = () => {
               <div className="mt-6">
                 <button 
                   className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium shadow-lg shadow-primary/20 flex items-center justify-center smooth-transition"
-                  onClick={() => setStep(3)}
+                  onClick={handleProcessFiles}
+                  disabled={processing || files.length !== 1}
                 >
-                  Split PDF
-                  <ArrowRight className="ml-2 w-4 h-4" />
+                  {processing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Split PDF
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -282,14 +448,21 @@ const Tool = () => {
                     </div>
                   </div>
                 </div>
-                <button className="bg-primary hover:bg-primary/90 text-white px-3 py-1 rounded text-sm font-medium shadow-sm flex items-center smooth-transition">
+                <a 
+                  href={mergedPdfUrl || "#"} 
+                  download={toolId === "merge-pdf" ? "merged.pdf" : "split.pdf"}
+                  className={cn(
+                    "bg-primary hover:bg-primary/90 text-white px-3 py-1 rounded text-sm font-medium shadow-sm flex items-center smooth-transition",
+                    !mergedPdfUrl && "opacity-50 pointer-events-none"
+                  )}
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" x2="12" y1="15" y2="3" />
                   </svg>
                   Download
-                </button>
+                </a>
               </div>
               
               <div className="flex items-start pt-4 border-t border-border">
@@ -304,9 +477,18 @@ const Tool = () => {
               <button 
                 className="bg-secondary hover:bg-secondary/80 text-foreground px-6 py-3 rounded-lg font-medium shadow-sm flex items-center justify-center smooth-transition"
                 onClick={() => {
+                  // Clean up the URL object to avoid memory leaks
+                  if (mergedPdfUrl) {
+                    URL.revokeObjectURL(mergedPdfUrl);
+                  }
+                  
                   setFiles([]);
+                  setFileOrder([]);
                   setSelectedFormat(null);
                   setStep(1);
+                  setMergedPdfUrl(null);
+                  setProcessingComplete(false);
+                  setProcessing(false);
                 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">

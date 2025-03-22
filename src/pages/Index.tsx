@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import Hero from "@/components/Hero";
 import ToolGrid from "@/components/ToolGrid";
 import FileUpload from "@/components/FileUpload";
-import { ArrowRight, BarChart, Lock, Zap } from "lucide-react";
+import { ArrowRight, BarChart, Lock, Zap, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -12,23 +12,22 @@ const Index = () => {
     <Layout>
       <Hero />
       
-      <section className="container mx-auto px-4 sm:px-6 py-20">
-        <div className="max-w-5xl mx-auto bg-gradient-to-br from-white to-secondary/50 rounded-2xl overflow-hidden shadow-lg border border-white/20">
-          <div className="p-8 sm:p-12">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center">Upload your PDF to get started</h2>
-            <FileUpload className="max-w-2xl mx-auto" />
-            
-            <div className="mt-8 text-center">
-              <button className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium shadow-lg shadow-primary/20 flex items-center justify-center mx-auto smooth-transition">
-                Process Files
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+
       
-      <ToolGrid />
+      <section className="container mx-auto px-4 sm:px-6 py-12">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold">Popular PDF Tools</h2>
+          <Link 
+            to="/tools" 
+            className="flex items-center text-sm font-medium text-primary hover:underline"
+          >
+            View all tools
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Link>
+        </div>
+        
+        <ToolGrid featured={true} />
+      </section>
       
       <section className="container mx-auto px-4 sm:px-6 py-20">
         <div className="text-center mb-16">

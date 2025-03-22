@@ -5,8 +5,21 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import Tool from "./pages/Tool";
 import NotFound from "./pages/NotFound";
+import AllTools from "./pages/tools/AllTools";
+import Pricing from "./pages/Pricing";
+import About from "./pages/About";
+
+// Import new PDF tool pages
+import MergePDF from "./pages/tools/MergePDF";
+import SplitPDF from "./pages/tools/SplitPDF";
+import ConvertPDF from "./pages/tools/ConvertPDF";
+import CompressPDF from "./pages/tools/CompressPDF";
+import PdfToDocx from "./pages/tools/PdfToDocx";
+import ProtectPDF from "./pages/tools/ProtectPDF";
+
+// Legacy route handler for backward compatibility
+import Tool from "./pages/Tool";
 
 const queryClient = new QueryClient();
 
@@ -18,8 +31,22 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/tools" element={<AllTools />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/about" element={<About />} />
+          
+          {/* New dedicated tool routes */}
+          <Route path="/tools/merge-pdf" element={<MergePDF />} />
+          <Route path="/tools/split-pdf" element={<SplitPDF />} />
+          <Route path="/tools/convert-pdf" element={<ConvertPDF />} />
+          <Route path="/tools/compress-pdf" element={<CompressPDF />} />
+          <Route path="/tools/pdf-to-docx" element={<PdfToDocx />} />
+          <Route path="/tools/protect-pdf" element={<ProtectPDF />} />
+          
+          {/* Legacy route for backward compatibility */}
           <Route path="/tool/:toolId" element={<Tool />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          
+          {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
