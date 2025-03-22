@@ -23,6 +23,27 @@ export const outputFormats = [
 
 export const pdfTools: ToolData[] = [
   {
+    id: "rotate-pdf",
+    title: "Rotate PDF",
+    description: "Rotate pages in your PDF documents to the desired orientation",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.84 6.71 2.26" />
+        <path d="M21 3v4h-4" />
+        <path d="M16 3h5v5" />
+      </svg>
+    ),
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+    steps: [
+      "Upload your PDF file",
+      "Select pages and rotation angles",
+      "Download your rotated PDF"
+    ],
+    accepts: ".pdf",
+    path: "/tools/rotate-pdf"
+  },
+  {
     id: "pdf-to-docx",
     title: "PDF to Word",
     description: "Convert your PDF files to editable Word documents",

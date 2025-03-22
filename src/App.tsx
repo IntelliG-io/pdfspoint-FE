@@ -16,7 +16,8 @@ import SplitPDF from "./pages/tools/SplitPDF";
 import ConvertPDF from "./pages/tools/ConvertPDF";
 import CompressPDF from "./pages/tools/CompressPDF";
 import PdfToDocx from "./pages/tools/PdfToDocx";
-import ProtectPDF from "./pages/tools/ProtectPDF";
+import ProtectPDF from "./pages/tools/ProtectPDFWithLayout";
+import RotatePDF from "./pages/tools/RotatePDF";
 
 // Legacy route handler for backward compatibility
 import Tool from "./pages/Tool";
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/tools/compress-pdf" element={<CompressPDF />} />
           <Route path="/tools/pdf-to-docx" element={<PdfToDocx />} />
           <Route path="/tools/protect-pdf" element={<ProtectPDF />} />
+          <Route path="/tools/rotate-pdf" element={<RotatePDF />} />
           
           {/* Legacy route for backward compatibility */}
           <Route path="/tool/:toolId" element={<Tool />} />

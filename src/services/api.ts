@@ -244,6 +244,60 @@ export const compressPdf = async (file: File, options?: any) => {
   }
 };
 
+// PDF rotation operations
+export const rotatePdf = async (file: File, rotations: {page: number; degrees: number}[]) => {
+  // Validate input
+  if (!file) {
+    throw new Error('A PDF file is required for rotation');
+  }
+  
+  // Validate file is a PDF
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error(`The file "${file.name}" is not a PDF`);
+  }
+  
+  // Validate rotations array
+  if (!rotations || rotations.length === 0) {
+    throw new Error('At least one rotation instruction is required');
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Try a different approach - use a single rotations field with JSON string
+  // This may be how the controller is parsing the input
+  formData.append('rotations', JSON.stringify(rotations));
+  
+  try {
+    const response = await api.post('/pdf/rotate', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      responseType: 'blob',
+    });
+    
+    // Verify the response is a valid PDF
+    if (response.headers['content-type'] !== 'application/pdf') {
+      try {
+        const errorText = await response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || 'Error rotating PDF pages');
+        } catch (e) {
+          throw new Error(errorText || 'Error rotating PDF pages');
+        }
+      } catch (e) {
+        console.warn('Unexpected response type, but continuing anyway');
+      }
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error rotating PDF:', error);
+    throw error;
+  }
+};
+
 // PDF protection operations
 export const protectPdf = async (file: File, options: any) => {
   // Validate input

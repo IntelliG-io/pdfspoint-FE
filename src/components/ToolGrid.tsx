@@ -163,9 +163,9 @@ const ToolGrid: React.FC<ToolGridProps> = ({ className, featured = false }) => {
       title: "Rotate PDF",
       description: "Change page orientation as needed",
       icon: RotateCcw,
-      bgClass: "bg-cyan-100", 
-      route: "/tool/rotate-pdf",
-      comingSoon: true,
+      bgClass: "bg-purple-100", 
+      route: "/tools/rotate-pdf",
+      comingSoon: false,
       id: "rotate-pdf"
     },
     {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { mergePdfs, splitPdf, compressPdf, convertPdfToDocx, downloadFile } from '@/services/api';
+import { mergePdfs, splitPdf, compressPdf, convertPdfToDocx, rotatePdf, downloadFile } from '@/services/api';
 
 interface UsePdfOperationsOptions {
   onSuccess?: (data: Blob, filename: string) => void;
@@ -152,11 +152,44 @@ export const usePdfOperations = (options?: UsePdfOperationsOptions) => {
     }
   };
 
+  const handleRotatePdf = async (file: File, rotations: {page: number; degrees: number}[]) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await rotatePdf(file, rotations);
+      
+      // Generate a filename
+      const originalName = file.name;
+      const nameParts = originalName.split('.');
+      nameParts.pop(); // Remove extension
+      const filename = `${nameParts.join('.')}_rotated.pdf`;
+      
+      // Handle the success callback
+      if (options?.onSuccess) {
+        options.onSuccess(result, filename);
+      } else {
+        // Default download behavior
+        downloadFile(result, filename);
+      }
+      
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to rotate PDF pages');
+      setError(error);
+      options?.onError?.(error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
   return {
     mergePdfs: handleMergePdfs,
     splitPdf: handleSplitPdf,
     compressPdf: handleCompressPdf,
     convertPdfToDocx: handleConvertPdfToDocx,
+    rotatePdf: handleRotatePdf,
     isLoading,
     error,
     resetError,
