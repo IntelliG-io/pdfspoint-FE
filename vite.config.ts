@@ -10,12 +10,12 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/pdf': {
-        target: 'http://localhost:3001',
+        target: 'http://165.227.96.78:3001',
         changeOrigin: true,
         secure: false,
       },
       '/api/pdf': {
-        target: 'http://localhost:3001',
+        target: 'http://165.227.96.78:3001',
         changeOrigin: true,
         secure: false,
       },

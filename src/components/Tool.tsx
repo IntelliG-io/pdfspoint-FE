@@ -46,9 +46,6 @@ const Tool: React.FC<ToolProps> = ({
       
       <p className="text-sm text-muted-foreground mb-4">{description}</p>
       
-        <div className="absolute -right-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-20 group-hover:opacity-30 smooth-transition" 
-          style={{ background: `radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)` }}
-        />
         <div className="flex items-center justify-center mt-4">
           <div className="px-3 py-1 text-xs font-semibold text-primary bg-primary/10 rounded-full">
             Coming Soon
