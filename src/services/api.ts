@@ -657,4 +657,142 @@ export const addWatermark = async (file: File, options: any) => {
   }
 };
 
+// PDF to image conversion operations
+export const convertPdfToImage = async (file: File, options?: any) => {
+  // Validate input
+  if (!file) {
+    throw new Error('A PDF file is required for conversion');
+  }
+  
+  // Validate file is a PDF
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error(`The file "${file.name}" is not a PDF`);
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Add conversion options
+  if (options) {
+    // Handle object parameters separately
+    Object.entries(options).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        formData.append(key, JSON.stringify(value));
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value ? 'true' : 'false');
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    });
+  }
+  
+  try {
+    const response = await api.post('/pdf/convert/to-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      responseType: 'blob',
+    });
+    
+    // Check response content type to determine if it's a ZIP or an error
+    const contentType = response.headers['content-type']?.toLowerCase();
+    const isZip = contentType === 'application/zip' || 
+                  response.headers['content-disposition']?.includes('.zip');
+                  
+    if (!isZip) {
+      try {
+        const errorText = await response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || 'Error converting PDF to images');
+        } catch (e) {
+          throw new Error(errorText || 'Error converting PDF to images');
+        }
+      } catch (e) {
+        console.warn('Unexpected response type, but continuing anyway');
+      }
+    }
+    
+    // Get the page count from the header
+    const pageCount = parseInt(response.headers['x-page-count'] || '0', 10);
+    
+    // Return both the ZIP file and metadata
+    return {
+      file: response.data,
+      pageCount,
+    };
+  } catch (error) {
+    console.error('Error converting PDF to images:', error);
+    throw error;
+  }
+};
+
+// Convert a single PDF page to an image
+export const convertPdfPageToImage = async (file: File, pageNumber: number, options?: any) => {
+  // Validate input
+  if (!file) {
+    throw new Error('A PDF file is required for conversion');
+  }
+  
+  // Validate file is a PDF
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error(`The file "${file.name}" is not a PDF`);
+  }
+  
+  // Validate page number
+  if (!pageNumber || pageNumber < 1) {
+    throw new Error('A valid page number is required');
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('pageNumber', String(pageNumber));
+  
+  // Add conversion options
+  if (options) {
+    // Handle object parameters separately
+    Object.entries(options).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        formData.append(key, JSON.stringify(value));
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value ? 'true' : 'false');
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    });
+  }
+  
+  try {
+    const response = await api.post('/pdf/convert/to-image/single-page', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      responseType: 'blob',
+    });
+    
+    // Check response content type to determine if it's an image or an error
+    const contentType = response.headers['content-type']?.toLowerCase();
+    const isImage = contentType?.startsWith('image/');
+                  
+    if (!isImage) {
+      try {
+        const errorText = await response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || 'Error converting PDF page to image');
+        } catch (e) {
+          throw new Error(errorText || 'Error converting PDF page to image');
+        }
+      } catch (e) {
+        console.warn('Unexpected response type, but continuing anyway');
+      }
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error converting PDF page to image:', error);
+    throw error;
+  }
+};
+
 export default api;

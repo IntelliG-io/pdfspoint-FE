@@ -21,7 +21,42 @@ export const outputFormats = [
   { id: "text", name: "Text", extension: ".txt", icon: "T", color: "bg-gray-600" }
 ];
 
+export const imageFormats = [
+  { id: "jpg", name: "JPG", extension: ".jpg", quality: true },
+  { id: "png", name: "PNG", extension: ".png", transparency: true },
+  { id: "tiff", name: "TIFF", extension: ".tiff" },
+  { id: "bmp", name: "BMP", extension: ".bmp" }
+];
+
+export const imageQualityOptions = [
+  { id: "low", name: "Low", description: "Smaller file size, lower quality", dpi: "96 DPI" },
+  { id: "medium", name: "Medium", description: "Balanced size and quality", dpi: "150 DPI" },
+  { id: "high", name: "High", description: "Better quality, larger files", dpi: "300 DPI" },
+  { id: "best", name: "Best", description: "Highest quality, largest files", dpi: "600 DPI" }
+];
+
 export const pdfTools: ToolData[] = [
+  {
+    id: "pdf-to-image",
+    title: "PDF to Image",
+    description: "Convert PDF pages to JPG, PNG, or other image formats",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <circle cx="9" cy="9" r="2" />
+        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+      </svg>
+    ),
+    color: "text-fuchsia-600",
+    bgColor: "bg-fuchsia-100",
+    steps: [
+      "Upload your PDF file",
+      "Configure image conversion options",
+      "Convert and download your images"
+    ],
+    accepts: ".pdf",
+    path: "/tools/pdf-to-image"
+  },
   {
     id: "watermark-pdf",
     title: "Watermark PDF",

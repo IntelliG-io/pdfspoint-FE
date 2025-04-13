@@ -8,6 +8,8 @@ import ToolHeader from "@/components/pdf-tools/ToolHeader";
 import StepProgress from "@/components/pdf-tools/StepProgress";
 import ProcessingButton from "@/components/pdf-tools/ProcessingButton";
 import OperationComplete from "@/components/pdf-tools/OperationComplete";
+import PdfRotationPreview from "@/components/pdf-tools/PdfRotationPreview";
+import PdfFirstPagePreview from "@/components/pdf-tools/PdfFirstPagePreview";
 import { cn } from "@/lib/utils";
 import { RotateCw, RotateCcw, HelpCircle, Plus, Trash } from "lucide-react";
 import { getPdfInfo } from "@/services/api";
@@ -113,7 +115,20 @@ const RotatePDF: React.FC = () => {
   
   // Add a new rotation
   const addRotation = () => {
-    setRotations([...rotations, { page: 1, degrees: 90 }]);
+    // Set page to a value that hasn't been used yet, or default to 1
+    const usedPages = new Set(rotations.map(r => r.page));
+    let newPage = 1;
+    
+    // Find the first unused page number
+    for (let i = 1; i <= totalPages; i++) {
+      if (!usedPages.has(i)) {
+        newPage = i;
+        break;
+      }
+    }
+    
+    const newRotation = { page: newPage, degrees: 90 };
+    setRotations([...rotations, newRotation]);
   };
   
   // Remove a rotation
@@ -123,13 +138,17 @@ const RotatePDF: React.FC = () => {
     setRotations(updatedRotations);
   };
   
+
+  
   // Update a rotation
   const updateRotation = (index: number, field: 'page' | 'degrees', value: number) => {
     const updatedRotations = [...rotations];
+    
     // Ensure value is an integer for page field and is at least 1
     if (field === 'page') {
       value = Math.max(1, Math.floor(value) || 1);
     }
+    
     updatedRotations[index] = { ...updatedRotations[index], [field]: value };
     setRotations(updatedRotations);
   };
@@ -270,133 +289,173 @@ const RotatePDF: React.FC = () => {
         );
       case 2:
         return (
-          <div className="max-w-xl mx-auto w-full animate-fade-in animate-once">
+          <div className="max-w-6xl mx-auto w-full animate-fade-in animate-once">
             <h3 className="text-lg font-medium mb-4">Rotate PDF Pages</h3>
-            <div className="border rounded-lg p-6 bg-secondary/30">
-              <div className="mb-4">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Specify which pages to rotate and the rotation angle for each page.
-                  {totalPages > 0 && (
-                    <> Your document has <strong>{totalPages}</strong> {totalPages === 1 ? 'page' : 'pages'}.</>
-                  )}
-                </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left column: PDF Preview */}
+              <div className="order-2 md:order-1">
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium mb-3">Document Preview</h3>
+                  <PdfFirstPagePreview
+                    file={files.length > 0 ? files[0] : null}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Rotations will be applied to the pages you specify without changing the original document
+                  </p>
+                </div>
                 
-                {rotations.map((rotation, index) => (
-                  <div key={index} className="flex items-center gap-3 mb-3">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium mb-1">Page</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max={totalPages || 999}
-                        className={cn(
-                          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
-                          "file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                          "disabled:cursor-not-allowed disabled:opacity-50",
-                          rotation.page < 1 || rotation.page > totalPages ? "border-red-500" : ""
-                        )}
-                        value={rotation.page}
-                        onChange={(e) => updateRotation(index, 'page', parseInt(e.target.value) || 1)}
-                        onBlur={(e) => {
-                          const value = parseInt(e.target.value) || 1;
-                          if (value < 1) {
-                            updateRotation(index, 'page', 1);
-                          } else if (totalPages && value > totalPages) {
-                            updateRotation(index, 'page', totalPages);
-                          }
-                        }}
-                      />
-                      {totalPages > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Max: {totalPages} {totalPages === 1 ? 'page' : 'pages'}
-                        </p>
-                      )}
+                <div className="bg-background p-4 rounded-lg mt-4 text-sm">
+                  <div className="flex items-start">
+                    <HelpCircle className="w-5 h-5 text-primary mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium">Rotation Tips</h4>
+                      <ul className="text-muted-foreground mt-1 space-y-1">
+                        <li className="flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                          </svg>
+                          0° (No Rotation): Keeps the page in its original orientation
+                        </li>
+                        <li className="flex items-center">
+                          <RotateCw className="w-4 h-4 mr-1" /> 90° Clockwise: Rotates the page to the right
+                        </li>
+                        <li className="flex items-center">
+                          <RotateCcw className="w-4 h-4 mr-1" /> 90° Counter-Clockwise: Rotates the page to the left
+                        </li>
+                        <li className="flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                            <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2"></path>
+                            <rect width="8" height="8" x="2" y="14" rx="2"></rect>
+                          </svg>
+                          180° Upside Down: Flips the page upside down
+                        </li>
+                      </ul>
                     </div>
-                    
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium mb-1">Angle</label>
-                      <div className="flex">
-                        <select
-                          className={cn(
-                            "flex h-10 w-full rounded-l-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                            "disabled:cursor-not-allowed disabled:opacity-50"
-                          )}
-                          value={rotation.degrees}
-                          onChange={(e) => updateRotation(index, 'degrees', parseInt(e.target.value))}
-                        >
-                          <option value={90}>90° Clockwise</option>
-                          <option value={180}>180° Upside Down</option>
-                          <option value={270}>90° Counter-Clockwise</option>
-                        </select>
-                        <div className="flex items-center justify-center h-10 w-10 bg-muted border border-l-0 border-input rounded-r-md">
-                          {rotation.degrees === 90 && <RotateCw className="w-5 h-5 text-primary" />}
-                          {rotation.degrees === 270 && <RotateCcw className="w-5 h-5 text-primary" />}
-                          {rotation.degrees === 180 && (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                              <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2"></path>
-                              <rect width="8" height="8" x="2" y="14" rx="2"></rect>
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-none pt-6">
-                      <button 
-                        type="button" 
-                        className="p-2 rounded-full hover:bg-background"
-                        onClick={() => removeRotation(index)}
-                        disabled={rotations.length <= 1}
-                      >
-                        <Trash className="w-4 h-4 text-destructive" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                
-                <button
-                  type="button"
-                  onClick={addRotation}
-                  className="flex items-center justify-center w-full p-2 mt-2 border border-dashed border-primary/50 rounded-md text-sm text-primary hover:bg-primary/5"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Another Page to Rotate
-                </button>
-              </div>
-              
-              <div className="bg-background p-4 rounded-lg mt-4 text-sm">
-                <div className="flex items-start">
-                  <HelpCircle className="w-5 h-5 text-primary mr-2 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">Rotation Tips</h4>
-                    <ul className="text-muted-foreground mt-1 space-y-1">
-                      <li className="flex items-center">
-                        <RotateCw className="w-4 h-4 mr-1" /> 90° Clockwise: Rotates the page to the right
-                      </li>
-                      <li className="flex items-center">
-                        <RotateCcw className="w-4 h-4 mr-1" /> 90° Counter-Clockwise: Rotates the page to the left
-                      </li>
-                      <li className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                          <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2"></path>
-                          <rect width="8" height="8" x="2" y="14" rx="2"></rect>
-                        </svg>
-                        180° Upside Down: Flips the page upside down
-                      </li>
-                    </ul>
                   </div>
                 </div>
               </div>
+              
+              {/* Right column: Rotation Controls */}
+              <div className="order-1 md:order-2">
+                <div className="border rounded-lg p-6 bg-secondary/30">
+                  <div className="mb-4">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Specify which pages to rotate and the rotation angle for each page.
+                      {totalPages > 0 && (
+                        <> Your document has <strong>{totalPages}</strong> {totalPages === 1 ? 'page' : 'pages'}.</>
+                      )}
+                    </p>
+                    
+                    {rotations.map((rotation, index) => (
+                      <div 
+                        key={index} 
+                        className={cn(
+                          "flex items-center gap-3 mb-3 p-3 rounded-md border border-transparent"
+                        )}
+                      >
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium mb-1">Page</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max={totalPages || 999}
+                            className={cn(
+                              "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+                              "file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                              "disabled:cursor-not-allowed disabled:opacity-50",
+                              rotation.page < 1 || rotation.page > totalPages ? "border-red-500" : ""
+                            )}
+                            value={rotation.page}
+                            onChange={(e) => updateRotation(index, 'page', parseInt(e.target.value) || 1)}
+                            onBlur={(e) => {
+                              const value = parseInt(e.target.value) || 1;
+                              if (value < 1) {
+                                updateRotation(index, 'page', 1);
+                              } else if (totalPages && value > totalPages) {
+                                updateRotation(index, 'page', totalPages);
+                              }
+                            }}
+
+                          />
+                          {totalPages > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Max: {totalPages} {totalPages === 1 ? 'page' : 'pages'}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium mb-1">Angle</label>
+                          <div className="flex">
+                            <select
+                              className={cn(
+                                "flex h-10 w-full rounded-l-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                "disabled:cursor-not-allowed disabled:opacity-50"
+                              )}
+                              value={rotation.degrees}
+                              onChange={(e) => updateRotation(index, 'degrees', parseInt(e.target.value))}
+                            >
+                              <option value={0}>0° (No Rotation)</option>
+                              <option value={90}>90° Clockwise</option>
+                              <option value={180}>180° Upside Down</option>
+                              <option value={270}>90° Counter-Clockwise</option>
+                            </select>
+                            <div className="flex items-center justify-center h-10 w-10 bg-muted border border-l-0 border-input rounded-r-md">
+                              {rotation.degrees === 0 && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                                  <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                                </svg>
+                              )}
+                              {rotation.degrees === 90 && <RotateCw className="w-5 h-5 text-primary" />}
+                              {rotation.degrees === 270 && <RotateCcw className="w-5 h-5 text-primary" />}
+                              {rotation.degrees === 180 && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                  <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2"></path>
+                                  <rect width="8" height="8" x="2" y="14" rx="2"></rect>
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex-none pt-6">
+                          <button 
+                            type="button" 
+                            className="p-2 rounded-full hover:bg-background"
+                            onClick={() => removeRotation(index)}
+                            disabled={rotations.length <= 1}
+                          >
+                            <Trash className="w-4 h-4 text-destructive" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={addRotation}
+                      className="flex items-center justify-center w-full p-2 mt-2 border border-dashed border-primary/50 rounded-md text-sm text-primary hover:bg-primary/5"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Another Page to Rotate
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <ProcessingButton 
+                    onClick={handleRotatePdf}
+                    isProcessing={processing}
+                    disabled={rotations.length === 0}
+                    text="Rotate PDF"
+                  />
+                </div>
+              </div>
             </div>
-            
-            <ProcessingButton 
-              onClick={handleRotatePdf}
-              isProcessing={processing}
-              disabled={rotations.length === 0}
-              text="Rotate PDF"
-            />
           </div>
         );
       case 3:

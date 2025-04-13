@@ -127,9 +127,9 @@ const ToolGrid: React.FC<ToolGridProps> = ({ className, featured = false }) => {
       title: "PDF to Image",
       description: "Convert each PDF page to an image",
       icon: FileImage,
-      bgClass: "bg-indigo-100",
-      route: "/tool/pdf-to-image",
-      comingSoon: true,
+      bgClass: "bg-fuchsia-100",
+      route: "/tools/pdf-to-image",
+      comingSoon: false,
       id: "pdf-to-image"
     },
     {

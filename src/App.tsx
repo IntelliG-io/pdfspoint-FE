@@ -20,6 +20,7 @@ import ProtectPDF from "./pages/tools/ProtectPDFWithLayout";
 import RotatePDF from "./pages/tools/RotatePDF";
 import NumberPages from "./pages/tools/NumberPages";
 import WatermarkPDF from "./pages/tools/WatermarkPDF";
+import PdfToImage from "./pages/tools/PdfToImage";
 
 // Legacy route handler for backward compatibility
 import Tool from "./pages/Tool";
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/tools/rotate-pdf" element={<RotatePDF />} />
           <Route path="/tools/number-pages" element={<NumberPages />} />
           <Route path="/tools/watermark-pdf" element={<WatermarkPDF />} />
+          <Route path="/tools/pdf-to-image" element={<PdfToImage />} />
           
           {/* Legacy route for backward compatibility */}
           <Route path="/tool/:toolId" element={<Tool />} />

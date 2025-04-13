@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { mergePdfs, splitPdf, compressPdf, convertPdfToDocx, rotatePdf, addPageNumbers, addWatermark, downloadFile } from '@/services/api';
+import { 
+  mergePdfs, 
+  splitPdf, 
+  compressPdf, 
+  convertPdfToDocx, 
+  rotatePdf, 
+  addPageNumbers, 
+  addWatermark, 
+  convertPdfToImage,
+  convertPdfPageToImage,
+  downloadFile 
+} from '@/services/api';
 
 interface UsePdfOperationsOptions {
   onSuccess?: (data: Blob, filename: string) => void;
@@ -248,6 +259,72 @@ export const usePdfOperations = (options?: UsePdfOperationsOptions) => {
     }
   };
 
+  const handleConvertPdfToImage = async (file: File, conversionOptions?: any) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await convertPdfToImage(file, conversionOptions);
+      
+      // Generate a filename
+      const originalName = file.name;
+      const nameParts = originalName.split('.');
+      nameParts.pop(); // Remove extension
+      const format = conversionOptions?.format || 'jpg';
+      const filename = `${nameParts.join('.')}_images.zip`;
+      
+      // Handle the success callback
+      if (options?.onSuccess) {
+        options.onSuccess(result.file, filename);
+      } else {
+        // Default download behavior
+        downloadFile(result.file, filename);
+      }
+      
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to convert PDF to images');
+      setError(error);
+      options?.onError?.(error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const handleConvertPdfPageToImage = async (file: File, pageNumber: number, conversionOptions?: any) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await convertPdfPageToImage(file, pageNumber, conversionOptions);
+      
+      // Generate a filename
+      const originalName = file.name;
+      const nameParts = originalName.split('.');
+      nameParts.pop(); // Remove extension
+      const format = conversionOptions?.format || 'jpg';
+      const filename = `${nameParts.join('.')}_page_${pageNumber}.${format}`;
+      
+      // Handle the success callback
+      if (options?.onSuccess) {
+        options.onSuccess(result, filename);
+      } else {
+        // Default download behavior
+        downloadFile(result, filename);
+      }
+      
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to convert PDF page to image');
+      setError(error);
+      options?.onError?.(error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
   return {
     mergePdfs: handleMergePdfs,
     splitPdf: handleSplitPdf,
@@ -256,6 +333,8 @@ export const usePdfOperations = (options?: UsePdfOperationsOptions) => {
     rotatePdf: handleRotatePdf,
     addPageNumbers: handleAddPageNumbers,
     addWatermark: handleAddWatermark,
+    convertPdfToImage: handleConvertPdfToImage,
+    convertPdfPageToImage: handleConvertPdfPageToImage,
     isLoading,
     error,
     resetError,
