@@ -157,6 +157,35 @@ export const splitPdf = async (file: File, options?: any) => {
   }
 };
 
+// Get PDF info (metadata, page count, etc.)
+export const getPdfInfo = async (file: File) => {
+  // Validate input
+  if (!file) {
+    throw new Error('A PDF file is required');
+  }
+  
+  // Validate file is a PDF
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error(`The file "${file.name}" is not a PDF`);
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    const response = await api.post('/pdf/info', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error getting PDF info:', error);
+    throw error;
+  }
+};
+
 // Helper function to handle file downloads
 export const downloadFile = (blob: Blob, filename: string) => {
   const url = window.URL.createObjectURL(blob);
@@ -264,9 +293,12 @@ export const rotatePdf = async (file: File, rotations: {page: number; degrees: n
   const formData = new FormData();
   formData.append('file', file);
   
-  // Try a different approach - use a single rotations field with JSON string
-  // This may be how the controller is parsing the input
+  // Convert rotations to the format expected by the backend
+  // The backend expects a JSON string in the 'rotations' field
   formData.append('rotations', JSON.stringify(rotations));
+  
+  // For debugging
+  console.log('Sending rotations to backend:', JSON.stringify(rotations));
   
   try {
     const response = await api.post('/pdf/rotate', formData, {

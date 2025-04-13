@@ -10,6 +10,7 @@ import ProcessingButton from "@/components/pdf-tools/ProcessingButton";
 import OperationComplete from "@/components/pdf-tools/OperationComplete";
 import { cn } from "@/lib/utils";
 import { RotateCw, RotateCcw, HelpCircle, Plus, Trash } from "lucide-react";
+import { getPdfInfo } from "@/services/api";
 
 interface PageRotation {
   page: number;
@@ -67,7 +68,7 @@ const RotatePDF: React.FC = () => {
   }, [rotatedPdfUrl]);
   
   // Handle file uploads
-  const handleFilesSelected = (selectedFiles: File[]) => {
+  const handleFilesSelected = async (selectedFiles: File[]) => {
     // Only take the first file for rotation
     if (selectedFiles.length > 0) {
       const file = selectedFiles[0];
@@ -85,16 +86,30 @@ const RotatePDF: React.FC = () => {
       
       setFiles([file]);
       
-      // Simple estimate of page count based on file size
-      // In a real application, you'd use the pdf-lib library to get the exact page count
-      const estimatedPages = Math.max(1, Math.floor(file.size / 50000));
-      setTotalPages(estimatedPages);
+      try {
+        // Get accurate page count from the PDF info API
+        const pdfInfo = await getPdfInfo(file);
+        if (pdfInfo && typeof pdfInfo.pageCount === 'number') {
+          setTotalPages(pdfInfo.pageCount);
+        } else {
+          // Fallback to simple estimate
+          const estimatedPages = Math.max(1, Math.floor(file.size / 50000));
+          setTotalPages(estimatedPages);
+        }
+      } catch (error) {
+        console.error("Error getting PDF info:", error);
+        // Fallback to simple estimate based on file size
+        const estimatedPages = Math.max(1, Math.floor(file.size / 50000));
+        setTotalPages(estimatedPages);
+      }
       
       if (step === 1) {
         setStep(2);
       }
     }
   };
+  
+
   
   // Add a new rotation
   const addRotation = () => {
@@ -111,6 +126,10 @@ const RotatePDF: React.FC = () => {
   // Update a rotation
   const updateRotation = (index: number, field: 'page' | 'degrees', value: number) => {
     const updatedRotations = [...rotations];
+    // Ensure value is an integer for page field and is at least 1
+    if (field === 'page') {
+      value = Math.max(1, Math.floor(value) || 1);
+    }
     updatedRotations[index] = { ...updatedRotations[index], [field]: value };
     setRotations(updatedRotations);
   };
@@ -146,20 +165,67 @@ const RotatePDF: React.FC = () => {
         return;
       }
       
-      // Validate page numbers
+      // Make sure rotations are valid
+      const validatedRotations = rotations.map(rotation => ({
+        page: Math.max(1, Math.min(rotation.page, totalPages || 1)),
+        degrees: rotation.degrees
+      }));
+      
+      // Check if any page numbers were corrected
       const invalidPageRotations = rotations.filter(r => r.page < 1 || r.page > totalPages);
       if (invalidPageRotations.length > 0) {
+        // Let the user know their values were adjusted
         toast({
-          title: "Error",
-          description: `Invalid page number(s): ${invalidPageRotations.map(r => r.page).join(', ')}. PDF has approximately ${totalPages} pages.`,
-          variant: "destructive",
+          title: "Page numbers adjusted",
+          description: `Some page numbers were outside the valid range and have been adjusted to fit within the document's ${totalPages} pages.`,
           duration: 5000,
         });
-        setProcessing(false);
-        return;
+        
+        // Update rotations with valid values
+        setRotations(validatedRotations);
       }
       
-      await rotatePdf(files[0], rotations);
+      // Check for duplicate pages (keep the last rotation for each page)
+      const uniquePages = new Set();
+      const duplicatePages = new Set();
+      
+      validatedRotations.forEach(r => {
+        if (uniquePages.has(r.page)) {
+          duplicatePages.add(r.page);
+        }
+        uniquePages.add(r.page);
+      });
+      
+      if (duplicatePages.size > 0) {
+        toast({
+          title: "Duplicate pages detected",
+          description: `Pages ${Array.from(duplicatePages).join(', ')} have multiple rotation instructions. Only the last rotation for each page will be applied.`,
+          duration: 5000,
+        });
+        
+        // Keep only the last rotation for each page
+        const uniqueRotations = [];
+        const seenPages = new Set();
+        
+        // Process in reverse to keep the last rotation for each page
+        for (let i = validatedRotations.length - 1; i >= 0; i--) {
+          const r = validatedRotations[i];
+          if (!seenPages.has(r.page)) {
+            uniqueRotations.unshift(r); // Add to the front to maintain order
+            seenPages.add(r.page);
+          }
+        }
+        
+        // Update rotations with deduplicated values
+        if (uniqueRotations.length !== validatedRotations.length) {
+          setRotations(uniqueRotations);
+          validatedRotations.length = 0;
+          validatedRotations.push(...uniqueRotations);
+        }
+      }
+      
+      // Now proceed with the API call
+      await rotatePdf(files[0], validatedRotations);
     } catch (err) {
       // Show error toast
       toast({
@@ -210,6 +276,9 @@ const RotatePDF: React.FC = () => {
               <div className="mb-4">
                 <p className="text-sm text-muted-foreground mb-4">
                   Specify which pages to rotate and the rotation angle for each page.
+                  {totalPages > 0 && (
+                    <> Your document has <strong>{totalPages}</strong> {totalPages === 1 ? 'page' : 'pages'}.</>
+                  )}
                 </p>
                 
                 {rotations.map((rotation, index) => (
@@ -224,28 +293,54 @@ const RotatePDF: React.FC = () => {
                           "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
                           "file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                          "disabled:cursor-not-allowed disabled:opacity-50"
+                          "disabled:cursor-not-allowed disabled:opacity-50",
+                          rotation.page < 1 || rotation.page > totalPages ? "border-red-500" : ""
                         )}
                         value={rotation.page}
                         onChange={(e) => updateRotation(index, 'page', parseInt(e.target.value) || 1)}
+                        onBlur={(e) => {
+                          const value = parseInt(e.target.value) || 1;
+                          if (value < 1) {
+                            updateRotation(index, 'page', 1);
+                          } else if (totalPages && value > totalPages) {
+                            updateRotation(index, 'page', totalPages);
+                          }
+                        }}
                       />
+                      {totalPages > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Max: {totalPages} {totalPages === 1 ? 'page' : 'pages'}
+                        </p>
+                      )}
                     </div>
                     
                     <div className="flex-1">
                       <label className="block text-sm font-medium mb-1">Angle</label>
-                      <select
-                        className={cn(
-                          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                          "disabled:cursor-not-allowed disabled:opacity-50"
-                        )}
-                        value={rotation.degrees}
-                        onChange={(e) => updateRotation(index, 'degrees', parseInt(e.target.value))}
-                      >
-                        <option value={90}>90° Clockwise</option>
-                        <option value={180}>180° Upside Down</option>
-                        <option value={270}>90° Counter-Clockwise</option>
-                      </select>
+                      <div className="flex">
+                        <select
+                          className={cn(
+                            "flex h-10 w-full rounded-l-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                            "disabled:cursor-not-allowed disabled:opacity-50"
+                          )}
+                          value={rotation.degrees}
+                          onChange={(e) => updateRotation(index, 'degrees', parseInt(e.target.value))}
+                        >
+                          <option value={90}>90° Clockwise</option>
+                          <option value={180}>180° Upside Down</option>
+                          <option value={270}>90° Counter-Clockwise</option>
+                        </select>
+                        <div className="flex items-center justify-center h-10 w-10 bg-muted border border-l-0 border-input rounded-r-md">
+                          {rotation.degrees === 90 && <RotateCw className="w-5 h-5 text-primary" />}
+                          {rotation.degrees === 270 && <RotateCcw className="w-5 h-5 text-primary" />}
+                          {rotation.degrees === 180 && (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                              <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2"></path>
+                              <rect width="8" height="8" x="2" y="14" rx="2"></rect>
+                            </svg>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="flex-none pt-6">
