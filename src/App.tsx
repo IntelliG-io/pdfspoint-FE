@@ -18,6 +18,8 @@ import CompressPDF from "./pages/tools/CompressPDF";
 import PdfToDocx from "./pages/tools/PdfToDocx";
 import ProtectPDF from "./pages/tools/ProtectPDFWithLayout";
 import RotatePDF from "./pages/tools/RotatePDF";
+import NumberPages from "./pages/tools/NumberPages";
+import WatermarkPDF from "./pages/tools/WatermarkPDF";
 
 // Legacy route handler for backward compatibility
 import Tool from "./pages/Tool";
@@ -44,6 +46,8 @@ const App = () => (
           <Route path="/tools/pdf-to-docx" element={<PdfToDocx />} />
           <Route path="/tools/protect-pdf" element={<ProtectPDF />} />
           <Route path="/tools/rotate-pdf" element={<RotatePDF />} />
+          <Route path="/tools/number-pages" element={<NumberPages />} />
+          <Route path="/tools/watermark-pdf" element={<WatermarkPDF />} />
           
           {/* Legacy route for backward compatibility */}
           <Route path="/tool/:toolId" element={<Tool />} />

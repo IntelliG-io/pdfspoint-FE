@@ -23,6 +23,54 @@ export const outputFormats = [
 
 export const pdfTools: ToolData[] = [
   {
+    id: "watermark-pdf",
+    title: "Watermark PDF",
+    description: "Add text watermarks to your PDF documents",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+        <path d="M7 7h.01" />
+        <path d="m14 7-4 4" />
+        <path d="m7 14 1.75-1.75" />
+        <path d="m16 16 .5-.5" />
+        <path d="m9 15 .5.5" />
+        <path d="M17 7h.01" />
+        <path d="M12 16h.01" />
+      </svg>
+    ),
+    color: "text-sky-600",
+    bgColor: "bg-sky-100",
+    steps: [
+      "Upload your PDF file",
+      "Configure watermark options",
+      "Download your watermarked PDF"
+    ],
+    accepts: ".pdf",
+    path: "/tools/watermark-pdf"
+  },
+  {
+    id: "number-pages",
+    title: "Number Pages",
+    description: "Add customizable page numbers to your PDF documents",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+        <line x1="9" x2="15" y1="9" y2="9" />
+        <line x1="9" x2="15" y1="12" y2="12" />
+        <line x1="9" x2="15" y1="15" y2="15" />
+      </svg>
+    ),
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-100",
+    steps: [
+      "Upload your PDF file",
+      "Configure page numbering options",
+      "Download your numbered PDF"
+    ],
+    accepts: ".pdf",
+    path: "/tools/number-pages"
+  },
+  {
     id: "rotate-pdf",
     title: "Rotate PDF",
     description: "Rotate pages in your PDF documents to the desired orientation",

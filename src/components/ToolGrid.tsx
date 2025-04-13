@@ -173,9 +173,18 @@ const ToolGrid: React.FC<ToolGridProps> = ({ className, featured = false }) => {
       description: "Add page numbers to your documents",
       icon: FileDigit,
       bgClass: "bg-violet-100",
-      route: "/tool/number-pdf",
-      comingSoon: true,
-      id: "number-pdf"
+      route: "/tools/number-pages",
+      comingSoon: false,
+      id: "number-pages"
+    },
+    {
+      title: "Watermark PDF",
+      description: "Add text watermarks to your PDF documents",
+      icon: Stamp,
+      bgClass: "bg-sky-100",
+      route: "/tools/watermark-pdf",
+      comingSoon: false,
+      id: "watermark-pdf"
     },
     {
       title: "Edit PDF",

@@ -500,4 +500,129 @@ export const convertPdfToDocx = async (file: File, options?: any) => {
   }
 };
 
+// PDF page numbering operations
+export const addPageNumbers = async (file: File, options: any) => {
+  // Validate input
+  if (!file) {
+    throw new Error('A PDF file is required for adding page numbers');
+  }
+  
+  // Validate file is a PDF
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error(`The file "${file.name}" is not a PDF`);
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Add numbering options
+  Object.entries(options).forEach(([key, value]) => {
+    if (typeof value === 'object' && value !== null) {
+      formData.append(key, JSON.stringify(value));
+    } else if (typeof value === 'boolean') {
+      formData.append(key, value ? 'true' : 'false');
+    } else if (value !== undefined && value !== null) {
+      formData.append(key, String(value));
+    }
+  });
+  
+  try {
+    const response = await api.post('/pdf/number-pages', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      responseType: 'blob',
+    });
+    
+    // Verify the response is a valid PDF
+    if (response.headers['content-type'] !== 'application/pdf') {
+      try {
+        const errorText = await response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || 'Error adding page numbers');
+        } catch (e) {
+          throw new Error(errorText || 'Error adding page numbers');
+        }
+      } catch (e) {
+        console.warn('Unexpected response type, but continuing anyway');
+      }
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error adding page numbers:', error);
+    throw error;
+  }
+};
+
+// PDF watermark operations
+export const addWatermark = async (file: File, options: any) => {
+  // Validate input
+  if (!file) {
+    throw new Error('A PDF file is required for adding a watermark');
+  }
+  
+  // Validate file is a PDF
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error(`The file "${file.name}" is not a PDF`);
+  }
+  
+  // Validate required options
+  if (!options.type) {
+    throw new Error('Watermark type is required');
+  }
+  
+  if (!options.position) {
+    throw new Error('Watermark position is required');
+  }
+  
+  if (options.type === 'text' && !options.text) {
+    throw new Error('Text content is required for text watermarks');
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Add watermark options
+  Object.entries(options).forEach(([key, value]) => {
+    if (typeof value === 'object' && value !== null) {
+      formData.append(key, JSON.stringify(value));
+    } else if (typeof value === 'boolean') {
+      formData.append(key, value ? 'true' : 'false');
+    } else if (value !== undefined && value !== null) {
+      formData.append(key, String(value));
+    }
+  });
+  
+  try {
+    const response = await api.post('/pdf/watermark', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      responseType: 'blob',
+    });
+    
+    // Verify the response is a valid PDF
+    if (response.headers['content-type'] !== 'application/pdf') {
+      try {
+        const errorText = await response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || 'Error adding watermark');
+        } catch (e) {
+          throw new Error(errorText || 'Error adding watermark');
+        }
+      } catch (e) {
+        console.warn('Unexpected response type, but continuing anyway');
+      }
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error adding watermark:', error);
+    throw error;
+  }
+};
+
 export default api;

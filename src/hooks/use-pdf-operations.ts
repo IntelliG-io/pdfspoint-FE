@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { mergePdfs, splitPdf, compressPdf, convertPdfToDocx, rotatePdf, downloadFile } from '@/services/api';
+import { mergePdfs, splitPdf, compressPdf, convertPdfToDocx, rotatePdf, addPageNumbers, addWatermark, downloadFile } from '@/services/api';
 
 interface UsePdfOperationsOptions {
   onSuccess?: (data: Blob, filename: string) => void;
@@ -184,12 +184,78 @@ export const usePdfOperations = (options?: UsePdfOperationsOptions) => {
     }
   };
 
+  const handleAddPageNumbers = async (file: File, numberingOptions: any) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await addPageNumbers(file, numberingOptions);
+      
+      // Generate a filename
+      const originalName = file.name;
+      const nameParts = originalName.split('.');
+      nameParts.pop(); // Remove extension
+      const filename = `${nameParts.join('.')}_numbered.pdf`;
+      
+      // Handle the success callback
+      if (options?.onSuccess) {
+        options.onSuccess(result, filename);
+      } else {
+        // Default download behavior
+        downloadFile(result, filename);
+      }
+      
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to add page numbers');
+      setError(error);
+      options?.onError?.(error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  const handleAddWatermark = async (file: File, watermarkOptions: any) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await addWatermark(file, watermarkOptions);
+      
+      // Generate a filename
+      const originalName = file.name;
+      const nameParts = originalName.split('.');
+      nameParts.pop(); // Remove extension
+      const filename = `${nameParts.join('.')}_watermarked.pdf`;
+      
+      // Handle the success callback
+      if (options?.onSuccess) {
+        options.onSuccess(result, filename);
+      } else {
+        // Default download behavior
+        downloadFile(result, filename);
+      }
+      
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to add watermark');
+      setError(error);
+      options?.onError?.(error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
   return {
     mergePdfs: handleMergePdfs,
     splitPdf: handleSplitPdf,
     compressPdf: handleCompressPdf,
     convertPdfToDocx: handleConvertPdfToDocx,
     rotatePdf: handleRotatePdf,
+    addPageNumbers: handleAddPageNumbers,
+    addWatermark: handleAddWatermark,
     isLoading,
     error,
     resetError,
