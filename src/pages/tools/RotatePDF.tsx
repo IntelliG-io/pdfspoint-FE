@@ -10,8 +10,9 @@ import ProcessingButton from "@/components/pdf-tools/ProcessingButton";
 import OperationComplete from "@/components/pdf-tools/OperationComplete";
 import PdfRotationPreview from "@/components/pdf-tools/PdfRotationPreview";
 import PdfFirstPagePreview from "@/components/pdf-tools/PdfFirstPagePreview";
+import PdfImageRotationPreview from "@/components/pdf-tools/PdfImageRotationPreview";
 import { cn } from "@/lib/utils";
-import { RotateCw, RotateCcw, HelpCircle, Plus, Trash } from "lucide-react";
+import { RotateCw, RotateCcw, HelpCircle, Plus, Trash, Image, Loader } from "lucide-react";
 import { getPdfInfo } from "@/services/api";
 
 interface PageRotation {
@@ -27,13 +28,22 @@ const RotatePDF: React.FC = () => {
   const [processingComplete, setProcessingComplete] = useState(false);
   const [rotations, setRotations] = useState<PageRotation[]>([{ page: 1, degrees: 90 }]);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [pdfImages, setPdfImages] = useState<string[]>([]);
+  const [isConvertingToImages, setIsConvertingToImages] = useState(false);
   
   // Get the tool data
   const tool = getToolById("rotate-pdf");
   const { toast } = useToast();
   
   // Initialize PDF operations
-  const { rotatePdf, isLoading, error, getFriendlyErrorMessage } = usePdfOperations({
+  const { 
+    rotatePdf, 
+    convertPdfToImage, 
+    convertPdfPageToImage,
+    isLoading, 
+    error, 
+    getFriendlyErrorMessage 
+  } = usePdfOperations({
     onSuccess: (data: Blob, filename: string) => {
       // Create URL for the blob data
       const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
@@ -51,23 +61,67 @@ const RotatePDF: React.FC = () => {
     },
     onError: (error: Error) => {
       setProcessing(false);
+      setIsConvertingToImages(false);
       toast({
         title: "Error",
-        description: error.message || "An error occurred while rotating your PDF file.",
+        description: error.message || "An error occurred while processing your PDF file.",
         variant: "destructive",
         duration: 5000,
       });
     }
   });
   
+  // Function to convert PDF to images
+  const convertPdfToImages = async (file: File) => {
+    if (!file) return;
+    
+    setIsConvertingToImages(true);
+    setPdfImages([]);
+    
+    try {
+      // Get total pages information
+      const imageOptions = {
+        format: 'jpg',
+        quality: 'medium'
+      };
+      
+      // Approach: Convert each page separately to display them immediately
+      const imageUrls: string[] = [];
+      
+      for (let i = 1; i <= totalPages; i++) {
+        const imageBlob = await convertPdfPageToImage(file, i, imageOptions);
+        const imageUrl = URL.createObjectURL(imageBlob);
+        imageUrls.push(imageUrl);
+        setPdfImages([...imageUrls]);
+      }
+      
+      setIsConvertingToImages(false);
+    } catch (error) {
+      console.error("Error converting PDF to images:", error);
+      setIsConvertingToImages(false);
+      toast({
+        title: "Error",
+        description: "Failed to convert PDF to images. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+  };
+  
   // Clean up URL objects when component unmounts
   useEffect(() => {
     return () => {
+      // Clean up rotated PDF URL
       if (rotatedPdfUrl) {
         URL.revokeObjectURL(rotatedPdfUrl);
       }
+      
+      // Clean up all image URLs
+      pdfImages.forEach(url => {
+        URL.revokeObjectURL(url);
+      });
     };
-  }, [rotatedPdfUrl]);
+  }, [rotatedPdfUrl, pdfImages]);
   
   // Handle file uploads
   const handleFilesSelected = async (selectedFiles: File[]) => {
@@ -87,22 +141,32 @@ const RotatePDF: React.FC = () => {
       }
       
       setFiles([file]);
+      setPdfImages([]); // Reset previous images
       
       try {
         // Get accurate page count from the PDF info API
         const pdfInfo = await getPdfInfo(file);
         if (pdfInfo && typeof pdfInfo.pageCount === 'number') {
           setTotalPages(pdfInfo.pageCount);
+          
+          // After getting the page count, start converting to images
+          convertPdfToImages(file);
         } else {
           // Fallback to simple estimate
           const estimatedPages = Math.max(1, Math.floor(file.size / 50000));
           setTotalPages(estimatedPages);
+          
+          // Start converting to images with estimated page count
+          convertPdfToImages(file);
         }
       } catch (error) {
         console.error("Error getting PDF info:", error);
         // Fallback to simple estimate based on file size
         const estimatedPages = Math.max(1, Math.floor(file.size / 50000));
         setTotalPages(estimatedPages);
+        
+        // Start converting to images with estimated page count
+        convertPdfToImages(file);
       }
       
       if (step === 1) {
@@ -151,6 +215,11 @@ const RotatePDF: React.FC = () => {
     
     updatedRotations[index] = { ...updatedRotations[index], [field]: value };
     setRotations(updatedRotations);
+    
+    // Force re-render of the rotation previews by creating a new array reference
+    if (pdfImages.length > 0) {
+      setPdfImages([...pdfImages]);
+    }
   };
   
   // Handle the rotation process
@@ -265,6 +334,11 @@ const RotatePDF: React.FC = () => {
       URL.revokeObjectURL(rotatedPdfUrl);
     }
     
+    // Clean up all image URLs
+    pdfImages.forEach(url => {
+      URL.revokeObjectURL(url);
+    });
+    
     setFiles([]);
     setRotations([{ page: 1, degrees: 90 }]);
     setStep(1);
@@ -272,6 +346,8 @@ const RotatePDF: React.FC = () => {
     setProcessingComplete(false);
     setProcessing(false);
     setTotalPages(0);
+    setPdfImages([]);
+    setIsConvertingToImages(false);
   };
   
   // Render different content based on the current step
@@ -295,12 +371,62 @@ const RotatePDF: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left column: PDF Preview */}
               <div className="order-2 md:order-1">
+                {/* Document Preview Section */}
                 <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-3">Document Preview</h3>
-                  <PdfFirstPagePreview
-                    file={files.length > 0 ? files[0] : null}
-                    className="w-full"
-                  />
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-medium">Document Preview</h3>
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Image className="w-3.5 h-3.5 mr-1" />
+                      <span>PDF to Image Previews</span>
+                    </div>
+                  </div>
+                  
+                  {isConvertingToImages && (
+                    <div className="flex flex-col items-center justify-center py-8 border border-dashed rounded-md mb-4">
+                      <Loader className="w-8 h-8 text-primary animate-spin mb-2" />
+                      <p className="text-sm text-muted-foreground">Converting PDF to images...</p>
+                    </div>
+                  )}
+                  
+                  {!isConvertingToImages && pdfImages.length > 0 ? (
+                    <div className="mb-4">
+                      {/* Only show direct image previews if rotation previews aren't shown yet */}
+                      {rotations.length === 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {pdfImages.map((imageUrl, index) => (
+                            <div 
+                              key={`image-preview-${index}`} 
+                              className="border rounded-md overflow-hidden relative group"
+                            >
+                              <div className="aspect-[3/4] bg-white flex items-center justify-center p-2">
+                                <img 
+                                  src={imageUrl} 
+                                  alt={`Page ${index + 1}`} 
+                                  className="object-contain h-full w-full"
+                                />
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-background/90 text-xs py-1 px-2 text-center">
+                                Page {index + 1}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <PdfImageRotationPreview
+                          images={pdfImages}
+                          rotations={rotations}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    !isConvertingToImages && (
+                      <PdfFirstPagePreview
+                        file={files.length > 0 ? files[0] : null}
+                        className="w-full"
+                      />
+                    )
+                  )}
+                  
                   <p className="text-xs text-muted-foreground mt-2">
                     Rotations will be applied to the pages you specify without changing the original document
                   </p>

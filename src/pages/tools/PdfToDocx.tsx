@@ -28,6 +28,26 @@ const PdfToDocx: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [processingComplete, setProcessingComplete] = useState(false);
   const [conversionQuality, setConversionQuality] = useState<string>("standard");
+
+  // Advanced options state
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [fontHandling, setFontHandling] = useState<string>("substitute");
+  const [formatting, setFormatting] = useState({
+    preserveImages: true,
+    preserveLinks: true,
+    preserveTables: true,
+    preserveFormattingMarks: true,
+    defaultFontFamily: "Arial"
+  });
+  const [advanced, setAdvanced] = useState({
+    detectLists: true,
+    detectHeadings: true,
+    detectTables: true,
+    preserveColorProfile: true,
+    optimizeForAccessibility: false,
+    includeDocumentProperties: true
+  });
+
   
   // Since this tool might not be in the toolData yet, we'll create a manual definition
   const tool = {
@@ -112,36 +132,28 @@ const PdfToDocx: React.FC = () => {
     if (files.length === 0) {
       toast({
         title: "Error",
-        description: "Please upload a PDF file first.",
+        description: "Please select a PDF file to convert.",
         variant: "destructive",
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
-    
     setProcessing(true);
-    
+
+    // Build options object for backend
+    const options: any = {
+      quality: conversionQuality,
+    };
+    if (showAdvanced) {
+      options.fontHandling = fontHandling;
+      options.formatting = { ...formatting };
+      options.advanced = { ...advanced };
+    }
+
     try {
-      // Create conversion options based on selected quality
-      const options = {
-        quality: conversionQuality,
-        formatting: {
-          preserveImages: true,
-          preserveLinks: true,
-          preserveTables: true,
-        },
-        advanced: {
-          detectHeadings: true,
-          detectLists: true,
-          optimizeForAccessibility: conversionQuality === "precise",
-        }
-      };
-      
       await convertPdfToDocx(files[0], options);
-      
-    } catch (error) {
-      console.error("Conversion error:", error);
-      // Error is already handled by usePdfOperations
+    } catch (err) {
+      setProcessing(false);
     }
   };
   
@@ -185,7 +197,6 @@ const PdfToDocx: React.FC = () => {
         return (
           <div className="max-w-xl mx-auto w-full bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-medium mb-4">Conversion Options</h3>
-            
             {files.length > 0 && (
               <div className="mb-6 p-3 bg-gray-50 rounded flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,7 +206,6 @@ const PdfToDocx: React.FC = () => {
                 <span className="text-sm">{files[0].name}</span>
               </div>
             )}
-            
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Conversion Quality
@@ -215,7 +225,6 @@ const PdfToDocx: React.FC = () => {
                     Faster conversion, simpler formatting
                   </span>
                 </button>
-                
                 <button
                   type="button"
                   className={`px-4 py-2 text-sm font-medium rounded-md ${
@@ -230,7 +239,6 @@ const PdfToDocx: React.FC = () => {
                     Good balance of speed and quality
                   </span>
                 </button>
-                
                 <button
                   type="button"
                   className={`px-4 py-2 text-sm font-medium rounded-md ${
@@ -247,13 +255,87 @@ const PdfToDocx: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+            <button
+              type="button"
+              className="text-blue-600 hover:underline text-sm mb-4 mt-2"
+              onClick={() => setShowAdvanced(v => !v)}
+            >
+              {showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
+            </button>
+            {showAdvanced && (
+              <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+                <h4 className="font-semibold mb-2 text-gray-800">Font Handling</h4>
+                <select
+                  className="block w-full border border-gray-300 rounded px-3 py-2 mb-4"
+                  value={fontHandling}
+                  onChange={e => setFontHandling(e.target.value)}
+                >
+                  <option value="substitute">Substitute (default)</option>
+                  <option value="embed">Embed</option>
+                  <option value="fallback_only">Fallback Only</option>
+                </select>
+                <h4 className="font-semibold mb-2 text-gray-800">Formatting</h4>
+                <div className="grid grid-cols-2 gap-3 mb-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={formatting.preserveImages} onChange={e => setFormatting(f => ({ ...f, preserveImages: e.target.checked }))} />
+                    Preserve Images
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={formatting.preserveLinks} onChange={e => setFormatting(f => ({ ...f, preserveLinks: e.target.checked }))} />
+                    Preserve Links
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={formatting.preserveTables} onChange={e => setFormatting(f => ({ ...f, preserveTables: e.target.checked }))} />
+                    Preserve Tables
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={formatting.preserveFormattingMarks} onChange={e => setFormatting(f => ({ ...f, preserveFormattingMarks: e.target.checked }))} />
+                    Preserve Formatting Marks
+                  </label>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Default Font Family</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded px-2 py-1"
+                    value={formatting.defaultFontFamily}
+                    onChange={e => setFormatting(f => ({ ...f, defaultFontFamily: e.target.value }))}
+                  />
+                </div>
+                <h4 className="font-semibold mb-2 text-gray-800">Advanced Options</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={advanced.detectLists} onChange={e => setAdvanced(a => ({ ...a, detectLists: e.target.checked }))} />
+                    Detect Lists
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={advanced.detectHeadings} onChange={e => setAdvanced(a => ({ ...a, detectHeadings: e.target.checked }))} />
+                    Detect Headings
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={advanced.detectTables} onChange={e => setAdvanced(a => ({ ...a, detectTables: e.target.checked }))} />
+                    Detect Tables
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={advanced.preserveColorProfile} onChange={e => setAdvanced(a => ({ ...a, preserveColorProfile: e.target.checked }))} />
+                    Preserve Color Profile
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={advanced.optimizeForAccessibility} onChange={e => setAdvanced(a => ({ ...a, optimizeForAccessibility: e.target.checked }))} />
+                    Optimize for Accessibility
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={advanced.includeDocumentProperties} onChange={e => setAdvanced(a => ({ ...a, includeDocumentProperties: e.target.checked }))} />
+                    Include Document Properties
+                  </label>
+                </div>
+              </div>
+            )}
             <div className="mt-8">
               <ProcessingButton
                 onClick={handleConvert}
-                processing={processing}
+                isProcessing={processing}
                 text="Convert to Word"
-                processingText="Converting..."
               />
             </div>
           </div>

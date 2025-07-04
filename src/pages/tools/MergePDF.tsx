@@ -10,6 +10,8 @@ import PDFFileList from "@/components/pdf-tools/PDFFileList";
 import ProcessingButton from "@/components/pdf-tools/ProcessingButton";
 import OperationComplete from "@/components/pdf-tools/OperationComplete";
 
+
+
 const MergePDF: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [fileOrder, setFileOrder] = useState<number[]>([]);
@@ -17,21 +19,50 @@ const MergePDF: React.FC = () => {
   const [mergedPdfUrl, setMergedPdfUrl] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [processingComplete, setProcessingComplete] = useState(false);
+
   
   // Get the tool data
   const tool = getToolById("merge-pdf");
   const { toast } = useToast();
-  
+
+
+
   // Initialize PDF operations
   const { mergePdfs, isLoading, error, getFriendlyErrorMessage } = usePdfOperations({
-    onSuccess: (data: Blob, filename: string) => {
-      // Create URL for the blob data
-      const url = window.URL.createObjectURL(new Blob([data]));
-      setMergedPdfUrl(url);
+    onSuccess: async (data: Blob, filename: string) => {
       setProcessing(false);
       setProcessingComplete(true);
+
+      // Try File System Access API for native save dialog
+      if (typeof window.showSaveFilePicker === "function") {
+        try {
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: filename || "merged.pdf",
+            types: [
+              {
+                description: "PDF Document",
+                accept: { "application/pdf": [".pdf"] },
+              },
+            ],
+          });
+          const writable = await fileHandle.createWritable();
+          await writable.write(data);
+          await writable.close();
+          toast({
+            title: "Success!",
+            description: "Your merged PDF has been saved.",
+            duration: 5000,
+          });
+          setStep(1); // Reset to step 1 after save
+          return;
+        } catch (e) {
+          // If user cancels, fall back to download link
+        }
+      }
+      // Fallback for unsupported browsers or if user cancels
+      const url = window.URL.createObjectURL(new Blob([data]));
+      setMergedPdfUrl(url);
       setStep(3);
-      
       toast({
         title: "Success!",
         description: "Your merged PDF is ready for download.",
@@ -140,7 +171,6 @@ const MergePDF: React.FC = () => {
     if (mergedPdfUrl) {
       URL.revokeObjectURL(mergedPdfUrl);
     }
-    
     setFiles([]);
     setFileOrder([]);
     setStep(1);
@@ -205,17 +235,16 @@ const MergePDF: React.FC = () => {
               color={tool.color}
               bgColor={tool.bgColor}
             />
-            
             <StepProgress
               steps={tool.steps}
               currentStep={step}
             />
           </>
         )}
-        
         <div className="max-w-4xl mx-auto">
           {renderStep()}
         </div>
+
       </div>
     </Layout>
   );

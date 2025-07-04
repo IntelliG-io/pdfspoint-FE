@@ -73,7 +73,7 @@ const ToolGrid: React.FC<ToolGridProps> = ({ className, featured = false }) => {
       icon: FileOutput,
       bgClass: "bg-blue-100",
       route: "/tools/pdf-to-docx",
-      comingSoon: true,
+      comingSoon: false,
       id: "pdf-to-docx"
     },
     {

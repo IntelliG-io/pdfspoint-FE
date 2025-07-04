@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create axios instance with default config
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',  // Empty fallback to use relative URLs with proxy
-  timeout: 60000, // Set a longer timeout for file operations
+  timeout: 120000, // Increased timeout to 2 minutes for long-running file operations
   headers: {
     'Content-Type': 'application/json',
   },
