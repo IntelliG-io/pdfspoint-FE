@@ -6,10 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import AllTools from "./pages/tools/AllTools";
+import AllTools from "./pages/tools/AllTools";2
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
-
+import SignUp from "./pages/SignUp";
+import SignIn from "./pages/Signin";
 // Import new PDF tool pages
 import MergePDF from "./pages/tools/MergePDF";
 import SplitPDF from "./pages/tools/SplitPDF";
@@ -21,6 +22,7 @@ import RotatePDF from "./pages/tools/RotatePDF";
 import NumberPages from "./pages/tools/NumberPages";
 import WatermarkPDF from "./pages/tools/WatermarkPDF";
 import PdfToImage from "./pages/tools/PdfToImage";
+import DocxToPdf from "./pages/tools/DocxToPdf";
 
 // Legacy route handler for backward compatibility
 import Tool from "./pages/Tool";
@@ -34,6 +36,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+
           <Route path="/" element={<Index />} />
           <Route path="/tools" element={<AllTools />} />
           <Route path="/pricing" element={<Pricing />} />
@@ -50,7 +55,8 @@ const App = () => (
           <Route path="/tools/number-pages" element={<NumberPages />} />
           <Route path="/tools/watermark-pdf" element={<WatermarkPDF />} />
           <Route path="/tools/pdf-to-image" element={<PdfToImage />} />
-          
+          <Route path="/tools/docx-to-pdf" element={<DocxToPdf />} />
+
           {/* Legacy route for backward compatibility */}
           <Route path="/tool/:toolId" element={<Tool />} />
           

@@ -32,12 +32,17 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
           </nav>
 
           <div className="flex items-center gap-4">
-            <button className="text-sm font-medium hover:text-primary smooth-transition hidden md:block">
-              Sign In
-            </button>
-            <button className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium shadow-sm hover:bg-primary/90 smooth-transition">
-              Sign Up Free
-            </button>
+           <Link to="/signin" className="text-sm font-medium hover:text-primary smooth-transition hidden md:block">
+  Sign In
+</Link>
+
+           <Link
+  to="/signup"
+  className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium shadow-sm hover:bg-primary/90 smooth-transition"
+>
+  Sign Up Free
+</Link>
+
           </div>
         </div>
       </header>

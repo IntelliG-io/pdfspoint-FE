@@ -794,5 +794,104 @@ export const convertPdfPageToImage = async (file: File, pageNumber: number, opti
     throw error;
   }
 };
+export const convertDocxToPdf = async (file: File, options?: any) => {
+  // Validate input
+  if (!file) {
+    throw new Error('A DOCX file is required for conversion');
+  }
+  
+  // Validate file is a DOCX
+  if (!file.name.toLowerCase().endsWith('.docx')) {
+    throw new Error(`The file "${file.name}" is not a DOCX file`);
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Add options if provided
+  if (options) {
+    Object.entries(options).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        formData.append(key, JSON.stringify(value));
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value ? 'true' : 'false');
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
+      }
+    });
+  }
+  
+  // List of possible endpoints to try based on the API image
+  const possibleEndpoints = [
+    '/api/pdf/docx-to-pdf/basic',
+    '/api/pdf/docx-to-pdf/advanced', 
+    '/pdf/docx-to-pdf/basic',
+    '/pdf/docx-to-pdf/advanced',
+    '/api/pdf/convert/docx-to-pdf',
+    '/pdf/convert/docx-to-pdf',
+    '/docx-to-pdf/basic',
+    '/docx-to-pdf/advanced',
+    '/convert/docx-to-pdf',
+    '/api/convert/docx-to-pdf'
+  ];
+  
+  // Try each endpoint until one works
+  for (const endpoint of possibleEndpoints) {
+    try {
+      console.log(`Trying endpoint: ${endpoint}`);
+      
+      const response = await api.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        responseType: 'blob',
+      });
+      
+      // Log information about the response
+      console.log('DOCX to PDF conversion response:', {
+        endpoint,
+        status: response.status,
+        contentType: response.headers['content-type'],
+        contentDisposition: response.headers['content-disposition'],
+        dataSize: response.data.size
+      });
+      
+      // Verify the response is a valid PDF
+      if (response.headers['content-type'] !== 'application/pdf' && 
+          !response.headers['content-disposition']?.includes('.pdf')) {
+        // Try to parse error message if response is not a PDF
+        try {
+          const errorText = await response.data.text();
+          try {
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || 'Error converting DOCX to PDF');
+          } catch (e) {
+            throw new Error(errorText || 'Error converting DOCX to PDF');
+          }
+        } catch (e) {
+          console.warn('Unexpected response type, but continuing anyway');
+        }
+      }
+      
+      console.log(`Success with endpoint: ${endpoint}`);
+      return response.data;
+      
+    } catch (error) {
+      console.log(`Failed with endpoint ${endpoint}:`, error.response?.status || error.message);
+      
+      // If this is not a 404 error, throw it (it's a real error)
+      if (error.response?.status !== 404) {
+        console.error('Error converting DOCX to PDF:', error);
+        throw error;
+      }
+      
+      // If it's a 404, continue to try the next endpoint
+      continue;
+    }
+  }
+  
+  // If we get here, all endpoints failed with 404
+  throw new Error('DOCX to PDF conversion endpoint not found. Please check your API documentation or contact support.');
+};
 
 export default api;
