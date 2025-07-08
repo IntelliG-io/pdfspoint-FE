@@ -10,7 +10,7 @@ import AllTools from "./pages/tools/AllTools";2
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import SignUp from "./pages/SignUp";
-import SignIn from "./pages/Signin";
+import SignIn from "./pages/SignIn";
 // Import new PDF tool pages
 import MergePDF from "./pages/tools/MergePDF";
 import SplitPDF from "./pages/tools/SplitPDF";
