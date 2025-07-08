@@ -11,6 +11,10 @@ import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
+import Contact from "./pages/Contact";
+import Careers from "./pages/Careers";
+import Blog from "./pages/Blog";
+import HelpCentre from "./pages/HelpCentre";
 // Import new PDF tool pages
 import MergePDF from "./pages/tools/MergePDF";
 import SplitPDF from "./pages/tools/SplitPDF";
@@ -43,6 +47,10 @@ const App = () => (
           <Route path="/tools" element={<AllTools />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/help" element={<HelpCentre />} />
           
           {/* New dedicated tool routes */}
           <Route path="/tools/merge-pdf" element={<MergePDF />} />
